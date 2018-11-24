@@ -34,8 +34,6 @@ class Board1(PygameGame):
         len(self.character.holding) == 1):
             if (self.pan1 == True or self.pan2 == True) and len(self.character.holding) == 1:
                 self.character.holding.pop()
-                print("1")
-            print("2")
             self.drawingChar = self.character.imageOneArm
             self.character.arm1 = food
             self.character.holding.extend([holding])
@@ -45,15 +43,12 @@ class Board1(PygameGame):
         and len(self.character.holding) == 2):
             self.drawingChar = self.character.imageTwoArm
             if len(self.character.holding) == 2 and self.character.holding[0] in self.cookedFood:
-                print("3")
                 self.character.arm1 = food
                 self.character.holding[0] = holding
             elif len(self.character.holding) == 2 and self.character.holding[1] in self.cookedFood:
-                print("4")
                 self.character.arm2 = food
                 self.character.holding[1] = holding
             else:
-                print("5")
                 self.character.arm2 = food
                 self.character.holding.extend([holding])
 
@@ -127,15 +122,14 @@ class Board1(PygameGame):
         elif 710 < x < 805 and self.height-150 < y < self.height-100:
             self.moveTo(730, self.height-150)
             self.armChecking("images/cabbage.png", "cabbage")
-        # elif 800 < x < 880 and 290 < y < 350:
-        #     print("Move to next room")
 
     def redrawAll(self, screen):
         screen.blit(self.background, (-0, 0))
         if self.character.arm1 != None and self.character.arm2 == None:
-            food = pygame.image.load(self.character.arm1)
-            food = pygame.transform.scale(food, (40, 40))
-            self.drawingChar.blit(food, (60, 20))
+            screen.blit(self.drawingChar, (self.character.x, self.character.y))
+            food1 = pygame.image.load(self.character.arm1)
+            food1 = pygame.transform.scale(food1, (40,40))
+            self.drawingChar.blit(food1, (60, 20))
         elif self.character.arm2 != None:
             food1 = pygame.image.load(self.character.arm1)
             food2 = pygame.image.load(self.character.arm2)

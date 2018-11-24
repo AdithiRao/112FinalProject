@@ -51,9 +51,6 @@ class runGame(PygameGame):
                 if self.canBePlaced(table):
                     table.carrying.extend([self.character.arm1])
                     if len(self.character.holding) == 2:
-                        food2 = pygame.image.load(self.character.arm2)
-                        food2 = pygame.transform.scale(food2, (20, 20))
-                        table.image.blit(food2, ((table.image.get_size()[0])//2 -20, (table.image.get_size()[1])//2 - 20))
                         table.carrying.extend([self.character.arm2])
                         self.character.holding.remove(self.kitchen.images[self.character.arm2])
                         self.character.arm2 = None
@@ -83,6 +80,28 @@ class runGame(PygameGame):
             music = pygame.mixer.Sound("music2.wav")
             music.play(-1,0)
 
+    def placeOnTable(self):
+        for table in self.dining.takenTables:
+            if table.carrying != []:
+                if len(table.carrying) <= 2:
+                    x = -20
+                    for item in table.carrying:
+                        table.onTable.extend([item])
+                        item = pygame.image.load(item)
+                        item = pygame.transform.scale(item, (20, 20))
+                        table.image.blit(item, ((table.image.get_size()[0])//2\
+                        + x, (table.image.get_size()[1])//2 - 20))
+                        x += 40
+                else:
+                    x = -40
+                    for item in table.carrying:
+                        if item not in table.onTable:
+                            item = pygame.image.load(item)
+                            item = pygame.transform.scale(item, (20, 20))
+                            table.image.blit(item, ((table.image.get_size()[0])//2\
+                            + x, (table.image.get_size()[1])//2 - 20))
+                            x += 80
+
     def redrawAll(self, screen):
         screen.fill(self.bgColor)
         text = self.font.render("Score: " + str(self.dining.score), True, (255, 0, 0)) #red
@@ -99,25 +118,7 @@ class runGame(PygameGame):
             self.dining.redrawAll(screen)
             for customer in self.customers:
                 screen.blit(customer.image, (customer.x, customer.y))
-            for table in self.dining.takenTables:
-                if table.carrying != []:
-                    if len(table.carrying) <= 2:
-                        x = -20
-                        for item in table.carrying:
-                            item = pygame.image.load(item)
-                            item = pygame.transform.scale(item, (20, 20))
-                            table.image.blit(item, ((table.image.get_size()[0])//2\
-                            + x, (table.image.get_size()[1])//2 - 20))
-                            x += 40
-                    else:
-                        x = -40
-                        for item in table.carrying[2:]:
-                            item = pygame.image.load(item)
-                            item = pygame.transform.scale(item, (20, 20))
-                            table.image.blit(item, ((table.image.get_size()[0])//2\
-                            + x, (table.image.get_size()[1])//2 - 20))
-                            x += 80
-                    print(table.carrying)
+            self.placeOnTable()
             screen.blit(self.drawingChar, (self.character.x, self.character.y))
         elif self.background1:
             self.kitchen.redrawAll(screen)

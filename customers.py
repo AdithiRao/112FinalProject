@@ -15,6 +15,7 @@ class Table(object):
         image = pygame.image.load("images/table.png")
         self.image = pygame.transform.scale(image, (200, 150))
         self.carrying = []
+        self.onTable = []
 
 
 class SeatedTable(Table):
