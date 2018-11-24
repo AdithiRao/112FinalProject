@@ -2,6 +2,7 @@ import pygame
 from pygamegame import PygameGame
 from board1 import *
 from board2 import *
+from player import *
 
 class runGame(PygameGame):
     def __init__(self):
@@ -35,43 +36,41 @@ class runGame(PygameGame):
                 pygame.mixer.stop()
                 self.playMusic()
 
+    def canBePlaced(self, table):
+        if table.x <= pygame.mouse.get_pos()[0] <= table.x + table.image.get_size()[0] \
+        and table.y <= pygame.mouse.get_pos()[1] <= table.y + table.image.get_size()[1] \
+        and self.dining.movingCustomer == None and self.character.holding != [] and \
+        self.kitchen.images[self.character.arm1] in self.character.holding and \
+        0 <= len(table.carrying) <= 4:
+            return True
+        return False
+
     def place(self):
         if pygame.mouse.get_pressed()[0]:
             for table in self.dining.takenTables:
-                if table.x <= pygame.mouse.get_pos()[0] <= table.x + table.image.get_size()[0] \
-                and table.y <= pygame.mouse.get_pos()[1] <= table.y + table.image.get_size()[1] \
-                and self.dining.movingCustomer == None:
-                    food1 = pygame.image.load(self.character.arm1)
-                    food1 = pygame.transform.scale(food1, (20, 20))
-                    table.image.blit(food1, ((table.image.get_size()[0])//2 +20, (table.image.get_size()[1])//2 - 20))
-                    table.carrying.extend([food1])
+                if self.canBePlaced(table):
+                    table.carrying.extend([self.character.arm1])
                     if len(self.character.holding) == 2:
                         food2 = pygame.image.load(self.character.arm2)
                         food2 = pygame.transform.scale(food2, (20, 20))
                         table.image.blit(food2, ((table.image.get_size()[0])//2 -20, (table.image.get_size()[1])//2 - 20))
-                        table.carrying.extend([food2])
+                        table.carrying.extend([self.character.arm2])
                         self.character.holding.remove(self.kitchen.images[self.character.arm2])
+                        self.character.arm2 = None
                     self.character.holding.remove(self.kitchen.images[self.character.arm1])
+                    self.character.arm1 = None
+                    self.kitchen.drawingChar = self.kitchen.character.image
 
     def timerFired(self, dt):
+        self.kitchen.timerFired(dt)
+        self.drawingChar = self.kitchen.drawingChar
         if self.background1 == True:
-            self.startedPlaying = False
-            self.background = self.kitchen.background
-            self.drawingChar = self.kitchen.drawingChar
             (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
-            self.greenArrow = self.kitchen.greenArrow
-            self.coords = (810, 300)
         elif self.background2 == True:
-            self.startedPlaying = False
-            self.background = self.dining.background
-            # self.drawingChar = self.dining.drawingChar
+            self.dining.timerFired(dt)
             (self.character.x, self.character.y) = (self.dining.character.x, self.dining.character.y)
-            self.greenArrow = self.dining.greenArrow
-            self.coords = (0, 300)
             if self.character.holding != None:
                 self.place()
-        self.dining.timerFired(dt)
-        self.kitchen.timerFired(dt)
         self.customers = self.dining.customers
 
     def playMusic(self):
@@ -85,14 +84,7 @@ class runGame(PygameGame):
             music.play(-1,0)
 
     def redrawAll(self, screen):
-        for customer in self.customers:
-            if self.background2:
-                screen.blit(customer.image, (customer.x, customer.y))
-        if self.background2:
-            for table in self.dining.tables:
-                screen.blit(table.image, (table.x, table.y))
-            self.dining.redrawAll(screen)
-            # screen.blit(self.dining.score, (0,0))
+        screen.fill(self.bgColor)
         text = self.font.render("Score: " + str(self.dining.score), True, (255, 0, 0)) #red
         text_rect = text.get_rect()
         text_rect.right = screen.get_rect().right - 10
@@ -103,7 +95,32 @@ class runGame(PygameGame):
         text2_rect.right = screen.get_rect().right - 300
         text2_rect.y = 10
         screen.blit(text2, text2_rect)
-        screen.blit(self.drawingChar, (self.character.x, self.character.y))
+        if self.background2:
+            self.dining.redrawAll(screen)
+            for customer in self.customers:
+                screen.blit(customer.image, (customer.x, customer.y))
+            for table in self.dining.takenTables:
+                if table.carrying != []:
+                    if len(table.carrying) <= 2:
+                        x = -20
+                        for item in table.carrying:
+                            item = pygame.image.load(item)
+                            item = pygame.transform.scale(item, (20, 20))
+                            table.image.blit(item, ((table.image.get_size()[0])//2\
+                            + x, (table.image.get_size()[1])//2 - 20))
+                            x += 40
+                    else:
+                        x = -40
+                        for item in table.carrying[2:]:
+                            item = pygame.image.load(item)
+                            item = pygame.transform.scale(item, (20, 20))
+                            table.image.blit(item, ((table.image.get_size()[0])//2\
+                            + x, (table.image.get_size()[1])//2 - 20))
+                            x += 80
+                    print(table.carrying)
+            screen.blit(self.drawingChar, (self.character.x, self.character.y))
+        elif self.background1:
+            self.kitchen.redrawAll(screen)
 
     #from 112 notes
     def run(self):
@@ -160,10 +177,7 @@ class runGame(PygameGame):
                     else:
                         self.dining._keys[event.key] = False
                         self.dining.keyReleased(event.key, event.mod)
-            screen.fill(self.bgColor)
-            screen.blit(self.background, (-0, 0))
             self.redrawAll(screen)
-            screen.blit(self.greenArrow, self.coords)
             pygame.display.flip()
 
 

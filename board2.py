@@ -112,7 +112,7 @@ class Board2(PygameGame):
         customersSeated = copy.copy(self.seatedCustomers)
         for i in range(len(self.seatedCustomers)):
             self.seatedCustomers[i].time += 1
-            if self.seatedCustomers[i].time == 1000:
+            if self.seatedCustomers[i].time == 10000:
                 customersSeated.remove(self.seatedCustomers[i])
                 tablesIndex = self.tables.index(self.takenTables[i])
                 self.tables[tablesIndex] = Table(self.takenTables[i].x, self.takenTables[i].y)
@@ -128,5 +128,10 @@ class Board2(PygameGame):
 
 
     def redrawAll(self, screen):
+        screen.blit(self.background, (-0, 0))
         if self.movingCustomer != None:
-            screen.blit(self.movingCustomer.image, (pygame.mouse.get_pos()[0], pygame.mouse.get_pos()[1]))
+            screen.blit(self.movingCustomer.image, (pygame.mouse.get_pos()[0],\
+            pygame.mouse.get_pos()[1]))
+        for table in self.tables:
+            screen.blit(table.image, (table.x, table.y))
+        screen.blit(self.greenArrow, (0, 300))
