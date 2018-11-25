@@ -30,6 +30,8 @@ class Board2(PygameGame):
         self.score = 0
         self.level = 1
         self.orders = dict()
+        self.trashCan = pygame.image.load("images/trashCan.png")
+        self.trashCan = pygame.transform.scale(self.trashCan, (100, 80))
         pygame.init()
         pygame.mixer.init()
 
@@ -39,42 +41,40 @@ class Board2(PygameGame):
             print("Move back to kitchen")
 
     def createOrder(self):
-        food = ["steak", "vegSpringRolls", "nachos", "sushi", "juice", "coffee"]
+        food = ["steak", "springRolls", "nachos", "sushi", "juice", "coffee"]
         choice = random.choice(food)
         return choice
 
-    def checkIfPicked(self):
-        if pygame.mouse.get_pressed()[0]:
+    def checkIfPicked(self, background):
+        if pygame.mouse.get_pressed()[0] and background == True:
             for customer in self.customers:
                 if customer.x <= pygame.mouse.get_pos()[0] <= customer.x + customer.image.get_size()[0] \
                 and customer.y <= pygame.mouse.get_pos()[1] <= customer.y + customer.image.get_size()[1]:
                     self.movingCustomer = customer
 
-    def checkIfPlacedOnTable(self):
-        if pygame.mouse.get_pressed()[0]: #mouseButton down event
-            if self.movingCustomer != None:
-                for table in self.tables:
-                    if table.x <= pygame.mouse.get_pos()[0] <= table.x + table.image.get_size()[0] \
-                    and table.y <= pygame.mouse.get_pos()[1] <= table.y + table.image.get_size()[1] \
-                    and table not in self.takenTables and pygame.mouse.get_pressed()[0] == True:
-                        table.image = SeatedTable(table.x, table.y).image
-                        self.takenTables.extend([table])
-                        self.seatedCustomers.extend([self.movingCustomer])
-                        self.notOrderedYet[table] = self.movingCustomer
-                        self.customers.remove(self.movingCustomer) #the waiting customers
-                        self.movingCustomer = None
+    def checkIfPlacedOnTable(self, background):
+        if pygame.mouse.get_pressed()[0] and background == True and self.movingCustomer != None:
+            for table in self.tables:
+                if table.x <= pygame.mouse.get_pos()[0] <= table.x + table.image.get_size()[0] \
+                and table.y <= pygame.mouse.get_pos()[1] <= table.y + table.image.get_size()[1] \
+                and table not in self.takenTables and pygame.mouse.get_pressed()[0] == True:
+                    table.image = SeatedTable(table.x, table.y).image
+                    self.takenTables.extend([table])
+                    self.seatedCustomers.extend([self.movingCustomer])
+                    self.notOrderedYet[table] = self.movingCustomer
+                    self.customers.remove(self.movingCustomer) #the waiting customers
+                    self.movingCustomer = None
 
-    def moveToTable(self):
-        if pygame.mouse.get_pressed()[0]:
+    def moveToTable(self, background):
+        if pygame.mouse.get_pressed()[0] and background == True:
             for table in self.tables:
                 if table.x <= pygame.mouse.get_pos()[0] <= table.x + table.image.get_size()[0] \
                 and table.y <= pygame.mouse.get_pos()[1] <= table.y + table.image.get_size()[1] \
                 and self.movingCustomer == None:
                     self.character.x = table.x + 50
                     self.character.y = table.y +20
-
-
-
+                    if table in self.orders:
+                        print(self.orders[table])
 
     # def scoring(self)
     # if a order is completed, we give them + 10 points / time
@@ -84,7 +84,7 @@ class Board2(PygameGame):
         if self.score != 0 and self.score % 100 == 0: #everytime someone gets 100 points
             self.level += 1 #we make it harder
 
-    def leaveTable(self):
+    def customersLeaveTable(self):
         customersSeated = copy.copy(self.seatedCustomers)
         for i in range(len(self.seatedCustomers)):
             self.seatedCustomers[i].time += 1
@@ -115,26 +115,28 @@ class Board2(PygameGame):
     def order(self):
         notOrdered = copy.copy(self.notOrderedYet)
         for table in self.notOrderedYet:
-            self.orders[table] = (self.createOrder(), self.createOrder(), \
-            self.createOrder(), self.createOrder())
+            self.orders[table] = [self.createOrder(), self.createOrder(), \
+            self.createOrder(), self.createOrder()]
             notOrdered.pop(table)
         self.notOrderedYet = notOrdered
 
 
-    def timerFired(self, dt):
+    def timerFired(self, dt, background):
         self.startTime += 1
         self.levelUp()
         self.createCustomers()
-        self.leaveTable()
-        self.checkIfPicked()
-        self.checkIfPlacedOnTable()
-        self.moveToTable()
+        self.customersLeaveTable()
+        self.checkIfPicked(background)
+        self.checkIfPlacedOnTable(background)
         self.order()
+        self.moveToTable(background)
         #self.level()
         # for group in self.seatedCustomers:
 
 
     def redrawAll(self, screen):
+        background = pygame.image.load("images/background2.png")
+        self.background = pygame.transform.scale(background, (893, 627))
         screen.blit(self.background, (-0, 0))
         if self.movingCustomer != None:
             screen.blit(self.movingCustomer.image, (pygame.mouse.get_pos()[0],\
@@ -142,3 +144,4 @@ class Board2(PygameGame):
         for table in self.tables:
             screen.blit(table.image, (table.x, table.y))
         screen.blit(self.greenArrow, (0, 300))
+        screen.blit(self.trashCan, (780, 300))

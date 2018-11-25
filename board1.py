@@ -13,6 +13,8 @@ class Board1(PygameGame):
         self.drawingChar = self.character.image
         self.greenArrow = pygame.image.load("images/greenArrow.png")
         self.greenArrow = pygame.transform.scale(self.greenArrow, (80, 60))
+        self.trashCan = pygame.image.load("images/trashCan.png")
+        self.trashCan = pygame.transform.scale(self.trashCan, (100, 80))
         self.pan1 = False
         self.pan2 = False
         self.images ={"images/juice.png": "juice", "images/coffee.png": "coffee",\
@@ -29,9 +31,12 @@ class Board1(PygameGame):
             'firstClickS': False, 'firstClickN': False, 'firstClickUS': False, 'firstClickV': False}
 
     def armChecking(self, food, holding):
+        print(self.character.arm1 == None)
+        print(self.drawingChar == self.character.image)
         if self.character.arm1 == None and self.drawingChar == self.character.image \
         or ((self.pan1 == True or self.pan2 == True) and \
         len(self.character.holding) == 1):
+            print("hi")
             if (self.pan1 == True or self.pan2 == True) and len(self.character.holding) == 1:
                 self.character.holding.pop()
             self.drawingChar = self.character.imageOneArm
@@ -66,6 +71,14 @@ class Board1(PygameGame):
             self.firstClicks[click] = False
             self.doneWaitings[click] = False
         self.firstClicks[click] = True
+
+    def trash(self):
+        if self.character.arm1 != None:
+            self.character.arm1 = None
+        if self.character.arm2 != None:
+            self.character.arm2 = None
+        self.drawingChar = self.character.image
+        self.character.holding = []
 
     def mousePressed(self, x, y):
         #machine 1: juice
@@ -122,23 +135,17 @@ class Board1(PygameGame):
         elif 710 < x < 805 and self.height-150 < y < self.height-100:
             self.moveTo(730, self.height-150)
             self.armChecking("images/cabbage.png", "cabbage")
+        elif 780 < x < 880 and 200 < y < 280:
+            self.moveTo(780, 240)
+            self.trash()
+
 
     def redrawAll(self, screen):
+        background = pygame.image.load("images/background1.png")
+        self.background = pygame.transform.scale(background, (893, 627))
         screen.blit(self.background, (-0, 0))
-        if self.character.arm1 != None and self.character.arm2 == None:
-            screen.blit(self.drawingChar, (self.character.x, self.character.y))
-            food1 = pygame.image.load(self.character.arm1)
-            food1 = pygame.transform.scale(food1, (40,40))
-            self.drawingChar.blit(food1, (60, 20))
-        elif self.character.arm2 != None:
-            food1 = pygame.image.load(self.character.arm1)
-            food2 = pygame.image.load(self.character.arm2)
-            food1 = pygame.transform.scale(food1, (40, 40))
-            food2 = pygame.transform.scale(food2, (40, 40))
-            self.drawingChar.blit(food1, (80, 20))
-            self.drawingChar.blit(food2, (20, 20))
-        screen.blit(self.drawingChar, (self.character.x, self.character.y))
         screen.blit(self.greenArrow, (810, 300))
+        screen.blit(self.trashCan, (780, 200))
 
     def moveTo(self, x2,y2):
         self.character.x = x2
@@ -147,9 +154,9 @@ class Board1(PygameGame):
     def timerFired(self, dt):
         self.time += 1
         for click in self.firstClicks:
-            start = time.time()
             if self.firstClicks[click] == True:
-                if self.time % 100 == 0:
+                start = time.time()
+                if self.time % 10 == 0:
                     self.doneWaitings[click] = True
                 elif self.doneWaitings[click] == False:
                     pass

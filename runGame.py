@@ -18,9 +18,20 @@ class runGame(PygameGame):
         self.drawingChar = self.kitchen.drawingChar
         self.character = self.kitchen.character
         (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
+        self.character.arm1 = self.kitchen.character.arm1
+        self.character.arm2 = self.kitchen.character.arm2
         self.greenArrow = self.kitchen.greenArrow
         self.font = pygame.font.SysFont("Courier New", 24)
         pygame.init()
+
+    def trash(self):
+        if self.character.arm1 != None:
+            self.character.arm1 = None
+        if self.character.arm2 != None:
+            self.character.arm2 = None
+        self.drawingChar = pygame.image.load("images/fullcharacter.png")
+        self.kitchen.character.holding = []
+        self.character.holding = []
 
     def mousePressed(self, x, y):
         if self.background1 == True:
@@ -35,39 +46,81 @@ class runGame(PygameGame):
                 self.background2 = False
                 pygame.mixer.stop()
                 self.playMusic()
+            elif 780 < x < 880 and 300 < y < 380:
+                self.trash()
+            self.place()
+
 
     def canBePlaced(self, table):
         if table.x <= pygame.mouse.get_pos()[0] <= table.x + table.image.get_size()[0] \
         and table.y <= pygame.mouse.get_pos()[1] <= table.y + table.image.get_size()[1] \
         and self.dining.movingCustomer == None and self.character.holding != [] and \
-        self.kitchen.images[self.character.arm1] in self.character.holding and \
-        0 <= len(table.carrying) <= 4:
+        0 <= len(table.carrying) <= 4 and self.character.arm1 != None:
             return True
         return False
+
+    def oneArmImage(self, table, removeValue):
+        table.carrying.extend([removeValue])
+        self.dining.orders[table].remove(self.kitchen.images[removeValue])
+        self.kitchen.character.holding.remove(self.kitchen.images[removeValue])
+        self.character.arm2 = None
+        imageOneArm = pygame.image.load("images/character1ArmUp.png")
+        self.kitchen.character.imageOneArm = pygame.transform.scale(imageOneArm, (125, 150))
+        self.kitchen.drawingChar = self.kitchen.character.imageOneArm
+
+    def noArmImage(self):
+        self.kitchen.character.image = pygame.image.load("images/fullcharacter.png")
+        self.kitchen.drawingChar = self.kitchen.character.image
 
     def place(self):
         if pygame.mouse.get_pressed()[0]:
             for table in self.dining.takenTables:
                 if self.canBePlaced(table):
-                    table.carrying.extend([self.character.arm1])
-                    if len(self.character.holding) == 2:
-                        table.carrying.extend([self.character.arm2])
-                        self.character.holding.remove(self.kitchen.images[self.character.arm2])
-                        self.character.arm2 = None
-                    self.character.holding.remove(self.kitchen.images[self.character.arm1])
-                    self.character.arm1 = None
-                    self.kitchen.drawingChar = self.kitchen.character.image
+                    if self.kitchen.images[self.character.arm1] in \
+                    self.dining.orders[table] and len(self.character.holding) == 1:
+                        table.carrying.extend([self.character.arm1])
+                        self.dining.orders[table].remove(self.kitchen.images[self.character.arm1])
+                        self.kitchen.character.holding.remove(self.kitchen.images[self.character.arm1])
+                        self.character.arm1 = None
+                        self.noArmImage()
+                    elif len(self.character.holding) == 2 \
+                    and self.kitchen.images[self.character.arm1] in self.dining.orders[table] and \
+                    self.kitchen.images[self.character.arm2] not in self.dining.orders[table]:
+                        self.character.arm1 = self.character.arm2 #shift hands
+                        self.oneArmImage(table, self.character.arm2)
+                    elif len(self.character.holding) == 2 \
+                    and self.kitchen.images[self.character.arm2] in self.dining.orders[table] and \
+                    self.kitchen.images[self.character.arm1] not in self.dining.orders[table]:
+                        self.oneArmImage(table, self.character.arm2)
+                    elif len(self.character.holding) == 2 \
+                    and self.kitchen.images[self.character.arm2] in self.dining.orders[table] and \
+                    self.kitchen.images[self.character.arm1] in self.dining.orders[table]:
+                        if self.kitchen.images[self.character.arm1] == self.kitchen.images[self.character.arm2] \
+                        and self.dining.orders[table].count(self.kitchen.images[self.character.arm1]) == 1:
+                            self.oneArmImage(table, self.character.arm2)
+                        else:
+                            table.carrying.extend([self.character.arm2])
+                            table.carrying.extend([self.character.arm1])
+                            self.dining.orders[table].remove(self.kitchen.images[self.character.arm1])
+                            self.dining.orders[table].remove(self.kitchen.images[self.character.arm2])
+                            self.kitchen.character.holding.remove(self.kitchen.images[self.character.arm1])
+                            self.kitchen.character.holding.remove(self.kitchen.images[self.character.arm2])
+                            self.character.arm1 = None
+                            self.character.arm2 = None
+                            self.noArmImage()
+
 
     def timerFired(self, dt):
         self.kitchen.timerFired(dt)
+        self.dining.timerFired(dt, self.background2)
         self.drawingChar = self.kitchen.drawingChar
+        self.character.holding = self.kitchen.character.holding
         if self.background1 == True:
             (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
         elif self.background2 == True:
-            self.dining.timerFired(dt)
             (self.character.x, self.character.y) = (self.dining.character.x, self.dining.character.y)
-            if self.character.holding != None:
-                self.place()
+            self.character.arm1 = self.kitchen.character.arm1
+            self.character.arm2 = self.kitchen.character.arm2
         self.customers = self.dining.customers
 
     def playMusic(self):
@@ -92,10 +145,11 @@ class runGame(PygameGame):
                         table.image.blit(item, ((table.image.get_size()[0])//2\
                         + x, (table.image.get_size()[1])//2 - 20))
                         x += 40
+
                 else:
                     x = -40
                     for item in table.carrying:
-                        if item not in table.onTable:
+                        if self.kitchen.images[item] in self.dining.orders[table]:
                             item = pygame.image.load(item)
                             item = pygame.transform.scale(item, (20, 20))
                             table.image.blit(item, ((table.image.get_size()[0])//2\
@@ -119,16 +173,39 @@ class runGame(PygameGame):
             for customer in self.customers:
                 screen.blit(customer.image, (customer.x, customer.y))
             self.placeOnTable()
-            screen.blit(self.drawingChar, (self.character.x, self.character.y))
         elif self.background1:
             self.kitchen.redrawAll(screen)
 
+        if self.character.arm1 != None and self.character.arm2 == None:
+            food1 = pygame.image.load(self.character.arm1)
+            food1 = pygame.transform.scale(food1, (40,40))
+            self.drawingChar.blit(food1, (60, 20))
+            screen.blit(self.drawingChar, (self.character.x, self.character.y))
+            imageOneArm = pygame.image.load("images/Character1ArmUp.png")
+            self.kitchen.character.imageOneArm = pygame.transform.scale(imageOneArm, (125, 150))
+            self.kitchen.drawingChar = self.kitchen.character.imageOneArm
+        elif self.character.arm2 != None:
+            food1 = pygame.image.load(self.character.arm1)
+            food2 = pygame.image.load(self.character.arm2)
+            food1 = pygame.transform.scale(food1, (40, 40))
+            food2 = pygame.transform.scale(food2, (40, 40))
+            self.drawingChar.blit(food1, (80, 20))
+            self.drawingChar.blit(food2, (20, 20))
+            screen.blit(self.drawingChar, (self.character.x, self.character.y))
+            imageTwoArm = pygame.image.load("images/Character2ArmsUp.png")
+            self.kitchen.character.imageTwoArm = pygame.transform.scale(imageTwoArm, (150, 150))
+            self.drawingChar = self.kitchen.character.imageTwoArm
+        else:
+            self.drawingChar = pygame.image.load("images/fullcharacter.png")
+            screen.blit(self.drawingChar, (self.character.x, self.character.y))
+
+
+
+
     #from 112 notes
     def run(self):
-        # call game-specific initialization
         clock = pygame.time.Clock()
         screen = pygame.display.set_mode((self.width, self.height))
-        # set the title of the window
         pygame.display.set_caption("Diner Dash!")
         self.init()
         self.playMusic()
