@@ -8,6 +8,7 @@ class Customer(object):
         image = pygame.image.load("images/customers.png")
         self.image = pygame.transform.scale(image, (120, 100))
 
+
 class Table(object):
     def __init__(self, x, y):
         self.x = x
