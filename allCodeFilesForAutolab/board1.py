@@ -115,13 +115,13 @@ class Board1(PygameGame):
         if self.character.arm1 == None and self.ready[click] != None \
         and self.character.arm2 == None:
             self.character.arm1 = self.ready[click][0]
-            self.character.holding.extend([self.images[self.character.arm1]])
+            self.character.holding.extend([self.character.arm1])
             self.drawingChar = self.character.imageOneArm
         elif self.character.arm2 == None and self.character.arm1 != None and \
         self.ready[click] != None:
             self.drawingChar = self.character.imageTwoArm
             self.character.arm2 = self.ready[click][0]
-            self.character.holding.extend([self.images[self.character.arm2]])
+            self.character.holding.extend([self.character.arm2])
 
     def cooking(self, panNum, click, num):
         if panNum == 0: self.pan1 = True
@@ -136,7 +136,6 @@ class Board1(PygameGame):
                 self.ready[click] = None
                 self.firstClicks[click] = False
                 self.doneWaitings[click] = False
-                self.justClicked[num] = True
                 self.inAction.remove(self.circlePositions[num])
         elif self.character.holding != [] and self.justClicked[num] == True \
         and self.doneWaitings[click] == False:
@@ -150,7 +149,6 @@ class Board1(PygameGame):
         self.colorIndex[self.circlePositions[num]] == len(self.redToGreen) - 2):
             self.colorIndex.pop(self.circlePositions[num])
 
-
     def clicking(self, click, image, holding, num):
         if self.firstClicks[click] == True and self.doneWaitings[click] == True:
             self.ready[click] = image
@@ -159,13 +157,13 @@ class Board1(PygameGame):
                 self.ready[click] = None
                 self.firstClicks[click] = False
                 self.doneWaitings[click] = False
-                self.justClicked[num] = True
                 if self.circlePositions[num] in self.inAction:
                     self.inAction.remove(self.circlePositions[num])
         elif self.justClicked[num] == True and self.doneWaitings[click] == False:
-            self.inAction.extend([self.circlePositions[num]])
-            self.startTimes[self.circlePositions[num]] = time.time()
-            self.currTimes[click] = time.time()
+            if num != None:
+                self.inAction.extend([self.circlePositions[num]])
+                self.startTimes[self.circlePositions[num]] = time.time()
+                self.currTimes[click] = time.time()
             self.firstClicks[click] = True
             self.justClicked[num] = False
         if (self.circlePositions[num] in self.colorIndex and \
@@ -266,8 +264,11 @@ class Board1(PygameGame):
 
 #citation: http://code.activestate.com/recipes/266466-html-colors-tofrom-rgb-tuples/
 def HTMLColorToRGB(colorstring):
+#  convert #RRGGBB to an (R, G, B) tuple
     colorstring = colorstring.strip()
     if colorstring[0] == '#': colorstring = colorstring[1:]
+    # if len(colorstring) != 6:
+    #     raise ValueError, "input #%s is not in #RRGGBB format" % colorstring
     r, g, b = colorstring[:2], colorstring[2:4], colorstring[4:]
     r, g, b = [int(n, 16) for n in (r, g, b)]
     return (r, g, b)

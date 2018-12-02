@@ -1,5 +1,3 @@
-#from 112 handout
-
 import pygame
 
 

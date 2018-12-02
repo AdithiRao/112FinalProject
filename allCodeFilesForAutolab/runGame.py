@@ -125,6 +125,8 @@ class runGame(PygameGame):
                     and self.dining.orders[table].count(self.kitchen.images[self.character.arm1]) == 1:
                         self.oneArmImage(table, self.character.arm2)
                     else:
+                        # table.carrying.extend([self.character.arm2])
+                        # table.carrying.extend([self.character.arm1])
                         self.dining.orders[table].remove(self.kitchen.images[self.character.arm1])
                         self.dining.orders[table].remove(self.kitchen.images[self.character.arm2])
                         self.kitchen.character.holding.remove(self.kitchen.images[self.character.arm1])

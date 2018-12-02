@@ -101,7 +101,7 @@ class Board2(PygameGame):
         self.seatedCustomers = customersSeated
 
     def createCustomers(self):
-        if self.startTime % 100/self.level == 0:
+        if self.startTime % 30/self.level == 0:
             if self.customers != []:
                 if len(self.customers) <= 5:
                     xpos = 0
