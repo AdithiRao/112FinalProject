@@ -4,6 +4,7 @@ from player import Player
 from customers import *
 import random
 import copy
+import time
 
 
 class Board2(PygameGame):
@@ -42,10 +43,6 @@ class Board2(PygameGame):
         pygame.mixer.init()
 
 
-    def mousePressed(self, x, y):
-        if -100 < x < 200 and 290 < y < 350:
-            print("Move back to kitchen")
-
     def createOrder(self):
         food = ["steak", "springRolls", "nachos", "sushi", "juice", "coffee"]
         choice = random.choice(food)
@@ -57,6 +54,7 @@ class Board2(PygameGame):
                 if customer.x <= pygame.mouse.get_pos()[0] <= customer.x + customer.image.get_size()[0] \
                 and customer.y <= pygame.mouse.get_pos()[1] <= customer.y + customer.image.get_size()[1]:
                     self.movingCustomer = customer
+                    self.movingCustomer.startTime = customer.startTime
 
     def checkIfPlacedOnTable(self, background):
         if pygame.mouse.get_pressed()[0] and background == True and self.movingCustomer != None:
@@ -65,6 +63,11 @@ class Board2(PygameGame):
                 and table.y <= pygame.mouse.get_pos()[1] <= table.y + table.image.get_size()[1] \
                 and table not in self.takenTables and pygame.mouse.get_pressed()[0] == True:
                     table.image = SeatedTable(table.x, table.y).image
+                    mCIndex = self.customers.index(self.movingCustomer)
+                    self.customers[mCIndex].endTime = time.time()
+                    end = self.customers[mCIndex].endTime
+                    start = self.movingCustomer.startTime
+                    table.startTime = [time.time(), end-start]
                     self.takenTables.extend([table])
                     self.seatedCustomers.extend([self.movingCustomer])
                     self.notOrderedYet[table] = self.movingCustomer
@@ -81,24 +84,11 @@ class Board2(PygameGame):
                     self.character.x = table.x + 50
                     self.character.y = table.y +20
 
-    # def scoring(self)
-    # if a order is completed, we give them + 10 points / time
-    #they took to finish
 
     def levelUp(self):
-        if self.score != 0 and self.score % 100 == 0: #everytime someone gets 100 points
+        if self.score != 0 and self.score % 20 == 0: #everytime someone gets 100 points
             self.level += 1 #we make it harder
 
-    def customersLeaveTable(self):
-        customersSeated = copy.copy(self.seatedCustomers)
-        for i in range(len(self.seatedCustomers)):
-            self.seatedCustomers[i].time += 1
-            if self.seatedCustomers[i].time == 10000:
-                customersSeated.remove(self.seatedCustomers[i])
-                tablesIndex = self.tables.index(self.takenTables[i])
-                self.tables[tablesIndex] = Table(self.takenTables[i].x, self.takenTables[i].y)
-                self.takenTables.remove(self.takenTables[i])
-        self.seatedCustomers = customersSeated
 
     def createCustomers(self):
         if self.startTime % 100/self.level == 0:
@@ -109,12 +99,13 @@ class Board2(PygameGame):
                     for customer in self.customers: #set of 4 friends
                         if customer.y == ypos:
                             ypos -= 100
-                    customer = Customer(xpos, ypos)
+                    customer = Customer(xpos, ypos, time.time())
+                    # customer.startTime = time.time()
                     self.customers.extend([customer])
                 else:
                     self.waitingCustomers += 1
             else:
-                customer = Customer(0,450)
+                customer = Customer(0,450, time.time())
                 self.customers.extend([customer])
 
     def order(self):
@@ -126,20 +117,15 @@ class Board2(PygameGame):
         self.notOrderedYet = notOrdered
 
 
-
-
     def timerFired(self, dt, background):
         self.startTime += 1
         self.levelUp()
         self.createCustomers()
-        self.customersLeaveTable()
         self.checkIfPicked(background)
         self.checkIfPlacedOnTable(background)
         self.order()
         self.moveToTable(background)
 
-        #self.level()
-        # for group in self.seatedCustomers:
 
     #citation: https://www.pygame.org/wiki/TextWrap
     def drawText(self, surface, text, color, rect, font, aa=False, bkg=None):
@@ -172,18 +158,19 @@ class Board2(PygameGame):
         rectLeft = 0
         rectTop = self.height - 80
         for table in self.takenTables:
-            outputString = str(self.orders[table][0])
-            for item in self.orders[table][1:]:
-                outputString += ", " + str(item)
-            text = "Order " +str(num) + ":"+ outputString
-            text_rect = pygame.Rect((rectLeft+ 10, rectTop + 25), (80, 200))
-            ticketImage = pygame.image.load("images/ticket.png")
-            ticketImage = pygame.transform.scale(ticketImage, (100, 80))
-            screen.blit(ticketImage, (rectLeft, rectTop))
-            self.drawText(screen, text, (0, 0, 0), text_rect, self.font)
-            self.tickets.extend([(table, screen, text, (0,0,0), text_rect, self.font)])
-            rectLeft += 90
-            num+= 1
+            if table in self.orders:
+                outputString = str(self.orders[table][0])
+                for item in self.orders[table][1:]:
+                    outputString += ", " + str(item)
+                text = "Order " +str(num) + ":"+ outputString
+                text_rect = pygame.Rect((rectLeft+ 10, rectTop + 25), (80, 200))
+                ticketImage = pygame.image.load("images/ticket.png")
+                ticketImage = pygame.transform.scale(ticketImage, (100, 80))
+                screen.blit(ticketImage, (rectLeft, rectTop))
+                self.drawText(screen, text, (0, 0, 0), text_rect, self.font)
+                self.tickets.extend([(table, screen, text, (0,0,0), text_rect, self.font)])
+                rectLeft += 90
+                num+= 1
 
     def redrawAll(self, screen):
         background = pygame.image.load("images/background2.png")

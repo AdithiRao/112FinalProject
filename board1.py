@@ -75,7 +75,7 @@ class Board1(PygameGame):
             self.character.arm2 = None
             self.beingCooked[0] = [imgFile, self.cookedFood[self.character.holding[0]]]
             self.character.holding.pop(0)
-        elif self.pan1 == True and self.beingCooked[1] == None:
+        elif self.pan2 == True and self.beingCooked[1] == None:
             self.character.arm1 = self.character.arm2
             self.character.arm2 = None
             self.beingCooked[1] = [imgFile, self.cookedFood[self.character.holding[0]]]
@@ -87,7 +87,7 @@ class Board1(PygameGame):
             self.beingCooked[0] = [imgFile, self.cookedFood[self.character.holding[1]]]
             self.character.arm2 = None
             self.character.holding.pop(1)
-        elif self.pan1 == True and self.beingCooked[1] == None:
+        elif self.pan2 == True and self.beingCooked[1] == None:
             self.beingCooked[1] = [imgFile, self.cookedFood[self.character.holding[1]]]
             self.character.arm2 = None
             self.character.holding.pop(1)
@@ -133,7 +133,10 @@ class Board1(PygameGame):
                 self.beingCooked[panNum] = None
                 if panNum == 0: self.pan1 = False
                 elif panNum == 1: self.pan2 = False
-                self.ready[click] = None
+                self.ready.pop(click) #[click] = None
+                self.startTimes.pop(self.circlePositions[num])
+                self.firstClicks.pop(click)
+                self.currTimes.pop(click)
                 self.firstClicks[click] = False
                 self.doneWaitings[click] = False
                 self.justClicked[num] = True
@@ -150,13 +153,15 @@ class Board1(PygameGame):
         self.colorIndex[self.circlePositions[num]] == len(self.redToGreen) - 2):
             self.colorIndex.pop(self.circlePositions[num])
 
-
     def clicking(self, click, image, holding, num):
         if self.firstClicks[click] == True and self.doneWaitings[click] == True:
             self.ready[click] = image
             if len(self.character.holding) <= 1 and self.currClick == click:
                 self.armChecking(image, holding)
-                self.ready[click] = None
+                self.ready.pop(click)
+                self.startTimes.pop(self.circlePositions[num])
+                self.firstClicks.pop(click)
+                self.currTimes.pop(click)
                 self.firstClicks[click] = False
                 self.doneWaitings[click] = False
                 self.justClicked[num] = True
@@ -260,7 +265,7 @@ class Board1(PygameGame):
         for click in self.firstClicks:
             if self.firstClicks[click] == True:
                 timeNow = time.time() - self.currTimes[click]
-                if abs(timeNow - 7) < 0.2:
+                if abs(timeNow - 2) < 0.2: #7
                     self.doneWaitings[click] = True
                     pass
 
