@@ -9,6 +9,7 @@ class Customer(object):
         self.image = pygame.transform.scale(image, (120, 100))
         self.startTime = start
         self.endTime = None
+        self.name = None
 
 
 class Table(object):

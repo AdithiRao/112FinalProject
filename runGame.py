@@ -6,11 +6,6 @@ from player import *
 from customers import *
 from startScreen import *
 import math
-try:
-    import Queue as Q  # ver. < 3.0
-except ImportError:
-    import queue as Q
-
 
 class runGame(PygameGame):
     def __init__(self):
@@ -19,21 +14,15 @@ class runGame(PygameGame):
         self.background1 = False
         self.background2 = False
         self.justStarted = True
-        self.startedPlaying = False
-        self.kitchen = Board1()
-        self.dining = Board2()
-        self.startScreen = startScreen()
         self.customers = []
         self.collectMoneyTables = []
-        self.background = self.kitchen.background
-        self.drawingChar = self.kitchen.drawingChar
-        self.character = self.kitchen.character
-        (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
-        self.character.arm1 = self.kitchen.character.arm1
-        self.character.arm2 = self.kitchen.character.arm2
-        self.greenArrow = self.kitchen.greenArrow
+        self.startedPlaying = False
+        self.startScreen = startScreen()
         self.font = pygame.font.SysFont("Courier New", 24)
         self.highScore = self.startScreen.highScore
+        self.priorityCustomer = "No one"
+        self.allPrep = {"sushi": 1, "nachos": 1, "springRolls": 2, "steak": 2, \
+        "juice": 1, "coffee": 1}
         pygame.init()
 
     def trash(self):
@@ -46,7 +35,20 @@ class runGame(PygameGame):
         self.character.holding = []
 
     def mousePressed(self, x, y):
-        if self.background1 == True:
+        if self.background0 == True:
+            if self.startScreen.mousePressed(x, y) == True:
+                self.background0 = False
+                self.background1 = True
+                self.kitchen = Board1()
+                self.dining = Board2()
+                self.background = self.kitchen.background
+                self.drawingChar = self.kitchen.drawingChar
+                self.character = self.kitchen.character
+                (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
+                self.character.arm1 = self.kitchen.character.arm1
+                self.character.arm2 = self.kitchen.character.arm2
+                self.greenArrow = self.kitchen.greenArrow
+        elif self.background1 == True:
             if 800 < x < 880 and 290 < y < 350: #green Arrow placement
                 self.background1 = False
                 self.background2 = True
@@ -62,7 +64,8 @@ class runGame(PygameGame):
                 self.trash()
             self.extendTableCarrying()
             self.placeOnTable()
-            self.place()
+            placed = self.place()
+            self.updatePriority(placed)
             self.collectMoney()
 
     def extendTableCarrying(self):
@@ -108,6 +111,10 @@ class runGame(PygameGame):
         self.kitchen.character.image = pygame.image.load("images/fullcharacter.png")
         self.kitchen.drawingChar = self.kitchen.character.image
 
+    def updatePriority(self, placed):
+        if placed != None and not self.dining.queue.empty():
+            self.priorityCustomer = self.dining.queue.get().customer
+
     def place(self):
         takenTables = copy.copy(self.dining.takenTables)
         for table in self.dining.takenTables:
@@ -149,6 +156,7 @@ class runGame(PygameGame):
                         if ticket[0] == table:
                             diningTickets.remove(ticket)
                     self.dining.tickets = diningTickets
+                    return table
 
     def placeOnTable(self):
         for table in self.dining.takenTables:
@@ -208,22 +216,31 @@ class runGame(PygameGame):
             screen.blit(image, ((2*table.x + table.image.get_size()[0])//2, \
             (2*table.y + table.image.get_size()[1])//2 -20))
 
+    def initializePriority(self):
+        if self.priorityCustomer == "No one" and not self.dining.queue.empty():
+            self.priorityCustomer = self.dining.queue.get().customer
+
     def timerFired(self, dt):
-        self.kitchen.timerFired(dt)
-        self.dining.timerFired(dt, self.background2)
-        self.drawingChar = self.kitchen.drawingChar
-        self.character.holding = self.kitchen.character.holding
-        if self.background1 == True:
-            (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
-        elif self.background2 == True:
-            (self.character.x, self.character.y) = (self.dining.character.x, self.dining.character.y)
-            self.character.arm1 = self.kitchen.character.arm1
-            self.character.arm2 = self.kitchen.character.arm2
-            self.customersLeaveTable()
-        self.customers = self.dining.customers
+        if self.background0 != True:
+            if self.priorityCustomer != "No one":
+                self.backtracking()
+            self.kitchen.timerFired(dt)
+            self.dining.timerFired(dt, self.background2)
+            self.initializePriority()
+            self.drawingChar = self.kitchen.drawingChar
+            self.character.holding = self.kitchen.character.holding
+            if self.background1 == True:
+                (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
+            elif self.background2 == True:
+                (self.character.x, self.character.y) = (self.dining.character.x, self.dining.character.y)
+                self.character.arm1 = self.kitchen.character.arm1
+                self.character.arm2 = self.kitchen.character.arm2
+                self.customersLeaveTable()
+            self.customers = self.dining.customers
+            self.customersNames = self.dining.customersNames
 
     def playMusic(self):
-        if self.background1 == True:
+        if self.background1 == True or self.background0 == True:
             pygame.mixer.init()
             music = pygame.mixer.Sound("music.wav")
             music.play(-1,0)
@@ -232,18 +249,36 @@ class runGame(PygameGame):
             music = pygame.mixer.Sound("music2.wav")
             music.play(-1,0)
 
-
-    def scoreAndWaiting(self, screen):
-        text = self.font.render("Score: " + str(self.dining.score), True, (255, 0, 0)) #red
+    def scoreWaitingAndPriority(self, screen):
+        text = self.font.render("Score: " + str(self.dining.score), True, \
+        (0, 0, 0)) #black
         text_rect = text.get_rect()
         text_rect.right = screen.get_rect().right - 10
         text_rect.y = 10
         screen.blit(text, text_rect)
-        text2 = self.font.render("Waiting Outside: " + str(self.dining.waitingCustomers), True, (0, 255, 0))
-        text2_rect = text.get_rect()
+        text2 = self.font.render("Waiting Outside: " + \
+        str(self.dining.waitingCustomers), True, (0, 0, 0)) #black
+        text2_rect = text2.get_rect()
         text2_rect.right = screen.get_rect().right - 300
         text2_rect.y = 10
         screen.blit(text2, text2_rect)
+        text3 = self.font.render("Focus on: " + str(self.priorityCustomer), True\
+        , (255, 0, 0)) #red
+        text3_rect = text3.get_rect()
+        text3_rect.right = screen.get_rect().right - 500
+        text3_rect.y = 10
+        screen.blit(text3, text3_rect)
+
+    def backtracking(self):
+        if self.priorityCustomer in self.dining.custOrders:
+            orders = self.dining.custOrders[self.priorityCustomer]
+            self.helperBacktracking(orders)
+
+    def foodTimes(self):
+        pass
+
+    def helperBacktracking(self, orders):
+        pass
 
     def drawCharacter(self, screen):
         if self.character.arm1 == None and self.character.arm2 == None:
@@ -269,7 +304,6 @@ class runGame(PygameGame):
             self.kitchen.character.imageTwoArm = pygame.transform.scale(imageTwoArm, (150, 150))
             self.kitchen.drawingChar = self.kitchen.character.imageTwoArm
 
-
     def redrawAll(self, screen):
         if self.background0:
             self.startScreen.redrawAll(screen)
@@ -277,6 +311,14 @@ class runGame(PygameGame):
             self.dining.redrawAll(screen)
             for customer in self.customers:
                 screen.blit(customer.image, (customer.x, customer.y))
+                text = self.font.render(str(customer.name), True, \
+                (0, 0, 0)) #black
+                text_rect = text.get_rect()
+                middle = text.get_size()[0] //2
+                text_rect.right = (customer.x + customer.image.get_size()[0])//2 \
+                + middle
+                text_rect.y = customer.y
+                screen.blit(text, text_rect)
             self.drawMoney(screen)
         elif self.background1:
             self.kitchen.redrawAll(screen)
@@ -287,9 +329,9 @@ class runGame(PygameGame):
                 ticketImage = pygame.image.load("images/ticket.png")
                 ticketImage = pygame.transform.scale(ticketImage, (100, 80))
                 screen.blit(ticketImage, (rectLeft, rectTop))
-                self.dining.drawText(ticket[1], ticket[2], ticket[3], ticket[4], ticket[5])
+                self.dining.drawText(ticket[1], str(ticket[2]), ticket[3], ticket[4], ticket[5])
         if self.background1 or self.background2:
-            self.scoreAndWaiting(screen)
+            self.scoreWaitingAndPriority(screen)
             self.drawCharacter(screen)
 
     def updateScore(self, filename):
@@ -318,22 +360,23 @@ class runGame(PygameGame):
                 if event.type == pygame.QUIT:
                     playing = False
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if self.background1 == True:
+                    if self.background0 == True:
+                        self.startScreen.mousePressed(*(event.pos))
+                    elif self.background1 == True:
                         self.kitchen.mousePressed(*(event.pos))
-                        self.mousePressed(*(event.pos))
                     else:
                         self.dining.mousePressed(*(event.pos))
-                        self.mousePressed(*(event.pos))
-                elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                    if self.background1 == True:
-                        self.kitchen.mouseReleased(*(event.pos))
-                    else:
-                        self.dining.mouseReleased(*(event.pos))
+                    self.mousePressed(*(event.pos))
+                # elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                #     if self.background1 == True:
+                #         self.kitchen.mouseReleased(*(event.pos))
+                #     else:
+                #         self.dining.mouseReleased(*(event.pos))
                 elif (event.type == pygame.MOUSEMOTION and
                       event.buttons == (0, 0, 0)):
                     if self.background1 == True:
                         self.kitchen.mouseMotion(*(event.pos))
-                    else:
+                    elif self.background2 == True:
                         self.dining.mouseMotion(*(event.pos))
                 elif (event.type == pygame.MOUSEMOTION and
                       event.buttons[0] == 1):
