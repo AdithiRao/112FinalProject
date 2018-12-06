@@ -21,6 +21,7 @@ class runGame(PygameGame):
         self.font = pygame.font.SysFont("Courier New", 24)
         self.highScore = self.startScreen.highScore
         self.priorityCustomer = "No one"
+        self.bestMove = "Wait for a customer"
         self.allPrep = {"sushi": 1, "nachos": 1, "springRolls": 2, "steak": 2, \
         "juice": 1, "coffee": 1}
         pygame.init()
@@ -259,31 +260,76 @@ class runGame(PygameGame):
         text2 = self.font.render("Waiting Outside: " + \
         str(self.dining.waitingCustomers), True, (0, 0, 0)) #black
         text2_rect = text2.get_rect()
-        text2_rect.right = screen.get_rect().right - 300
+        text2_rect.right = screen.get_rect().right - 100
         text2_rect.y = 10
         screen.blit(text2, text2_rect)
         text3 = self.font.render("Focus on: " + str(self.priorityCustomer), True\
         , (255, 0, 0)) #red
         text3_rect = text3.get_rect()
-        text3_rect.right = screen.get_rect().right - 500
+        text3_rect.right = screen.get_rect().right - 300
         text3_rect.y = 10
         screen.blit(text3, text3_rect)
+        if self.bestMove in self.allPrep:
+            text4 = self.font.render("Hint: make " + str(self.bestMove), True\
+            , (255, 0, 0)) #red
+        else:
+            text4 = self.font.render("Hint: " + str(self.bestMove), True\
+            , (255, 0, 0)) #red
+        text4_rect = text4.get_rect()
+        text4_rect.right = screen.get_rect().right - 500
+        text4_rect.y = 10
+        screen.blit(text4, text4_rect)
 
     def backtracking(self):
         if self.priorityCustomer in self.dining.custOrders:
-            orders = self.dining.custOrders[self.priorityCustomer]
-            self.helperBacktracking(orders)
+            orders = copy.copy(self.dining.custOrders[self.priorityCustomer])
+            bestOrderForOrders = []
+            bestSol = None
+            count = 0
+            self.bestMove = self.helperBacktracking(orders, bestOrderForOrders,\
+            bestSol)[0]
+        else:
+            self.bestMove = "Seat " + str(self.priorityCustomer) + "!"
 
-    def foodTimes(self):
-        pass
+    def foodTimes(self, bestOrderForOrders, tmpSol):
+        sum1 = 0
+        for order in bestOrderForOrders:
+            sum1 += self.allPrep[order]
+        sum2 = 0
+        for order in tmpSol:
+            sum2 += self.allPrep[order]
+        if sum1 < sum2:
+            return True
+        return False
 
-    def helperBacktracking(self, orders):
-        pass
+
+    def helperBacktracking(self, orders, bestOrderForOrders, bestSol):
+        if len(bestOrderForOrders) == len(self.dining.custOrders[self.priorityCustomer]):
+            return bestOrderForOrders
+        for move in self.allPrep:
+            if self.isValid(move, orders):
+                bestOrderForOrders.extend([move])
+                orders.remove(move)
+                tmpSol = self.helperBacktracking(orders, bestOrderForOrders, bestSol)
+                if tmpSol != None:
+                    if len(bestOrderForOrders) == 0:
+                        bestSol = tmpSol
+                    elif self.foodTimes(bestOrderForOrders, tmpSol) == True:
+                        bestSol = tmpSol
+                    return bestOrderForOrders
+                bestOrderForOrders.pop()
+                orders.extend(move)
+        return None
+
+    def isValid(self, move, orders):
+        if move in orders:
+            return True
+        return False
 
     def drawCharacter(self, screen):
         if self.character.arm1 == None and self.character.arm2 == None:
             self.kitchen.drawingChar = pygame.image.load("images/fullcharacter.png")
-            screen.blit(self.drawingChar, (self.character.x, self.character.y))
+            screen.blit(self.drawingChar, (self.character.x , self.character.y))
         elif self.character.arm1 != None and self.character.arm2 == None:
             food1 = pygame.image.load(self.character.arm1)
             food1 = pygame.transform.scale(food1, (40,40))
@@ -335,14 +381,15 @@ class runGame(PygameGame):
             self.drawCharacter(screen)
 
     def updateScore(self, filename):
-        with open(filename, "rt") as f:
-            pastScore = 0
-            for line in f:
-                pastScore = int(line[::])
-                if self.dining.score > pastScore:
-                    pastScore = self.dining.score
-        with open(filename, "wt") as w:
-            w.write(str(pastScore))
+        if not self.background0:
+            with open(filename, "rt") as f:
+                pastScore = 0
+                for line in f:
+                    pastScore = int(line[::])
+                    if self.dining.score > pastScore:
+                        pastScore = self.dining.score
+            with open(filename, "wt") as w:
+                w.write(str(pastScore))
 
     #from 112 notes
     def run(self):

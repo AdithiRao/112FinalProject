@@ -58,6 +58,10 @@ class Board2(PygameGame):
         "Christina's group", "Gabriella's group"]
         self.nameIndex = 0
         self.queue = Q.PriorityQueue()
+        customer1 = Customer(0,450, time.time())
+        self.getNameOfCustomer(customer1)
+        self.customers.extend([customer1])
+        self.queue.put(Priority(time.time(), customer1.name))
         pygame.init()
         pygame.mixer.init()
 
@@ -121,7 +125,7 @@ class Board2(PygameGame):
             if i <= 5 and self.customers[i].y != ypos:
                 self.customers[i].y = ypos
             ypos -= 100
-        if self.startTime % 10/self.level == 0:
+        if self.startTime % 100/self.level == 0:
             if self.customers != []:
                 if len(self.customers) <= 5:
                     ypos = 450
@@ -139,11 +143,11 @@ class Board2(PygameGame):
                     self.customers.extend([customer])
                     self.waitingCustomers += 1
                     ypos -= 100
-            else:
-                customer = Customer(0,450, time.time())
-                self.getNameOfCustomer(customer)
-                self.customers.extend([customer])
-                self.queue.put(Priority(time.time(), customer.name))
+            # else:
+            #     customer = Customer(0,450, time.time())
+            #     self.getNameOfCustomer(customer)
+            #     self.customers.extend([customer])
+            #     self.queue.put(Priority(time.time(), customer.name))
 
     def order(self):
         notOrdered = copy.copy(self.notOrderedYet)
@@ -155,7 +159,6 @@ class Board2(PygameGame):
         self.notOrderedYet = notOrdered
 
     def timerFired(self, dt, background):
-        print(self.custOrders)
         self.startTime += 1
         self.levelUp()
         self.createCustomers()
