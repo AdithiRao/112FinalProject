@@ -1,3 +1,5 @@
+#creates the kitchen board, with all of the properties that are appropriate
+
 import pygame
 from pygamegame import PygameGame
 from player import Player
@@ -32,6 +34,8 @@ class Board1(PygameGame):
         self.ready = dict()
         self.reached = dict()
         self.reachedKey = None
+        self.oldX = 100
+        self.oldY = 100
         self.circlePositions = [(40, 110), (120, 110), (330, 110), (420, 110),\
         (545, 110), (670, 110), (100, 530), (285, 530)]
         self.images ={"images/juice.png": "juice", "images/coffee.png": "coffee",\
@@ -124,8 +128,8 @@ class Board1(PygameGame):
     def obtainCookedFood(self, click):
         cx = self.character.x + self.character.image.get_size()[0]//2
         cy = self.character.y + self.character.image.get_size()[1]//2
-        if (click  == "firstClickCook1" and cx == 540 and cy == 180) or (click \
-        == "firstClickCook2" and cx == 659 and cy == 180):
+        if (click  == "firstClickCook1" and abs(cx -540) <10 and abs(cy-180) < 10) or (click \
+        == "firstClickCook2" and abs(cx-660) < 10 and abs(cy-180) < 10):
             if self.character.arm1 == None and self.ready[click] != None \
             and self.character.arm2 == None:
                 self.character.arm1 = self.ready[click][0]
@@ -270,7 +274,7 @@ class Board1(PygameGame):
             if "firstClickS" not in self.reached:
                 self.reached = dict()
                 self.reachedKey = "firstClickS"
-                self.path = createPath(cx,cy,95, 400)
+                self.path = createPath(cx,cy,200, 450)
             else:
                 self.reached["firstClickS"] = True
                 self.currClick = "firstClickS"
@@ -280,7 +284,7 @@ class Board1(PygameGame):
             if "firstClickN" not in self.reached:
                 self.reached = dict()
                 self.reachedKey = "firstClickN"
-                self.path = createPath(cx,cy,280,390)
+                self.path = createPath(cx,cy,220,450)
             else:
                 self.reached["firstClickN"] = True
                 self.currClick = "firstClickN"
@@ -334,21 +338,19 @@ class Board1(PygameGame):
         screen.blit(self.greenArrow, (810, 300))
         screen.blit(self.trashCan, (780, 200))
         screen.blit(self.centerTable, (305, 315))
-        # for pos in self.path:
+        # for pos in self.path:  #Can be reimplemented to see the paths created
         #     pygame.draw.circle(screen, (0,0,0), (pos[0], pos[1]), 3)
         self.drawTimerCircles(screen)
 
 
     def timerFired(self, dt):
-        if len(self.path) >= 5:
-            self.path.pop(0)
-            self.path.pop(0)
-            self.path.pop(0)
-            self.path.pop(0)
+        if len(self.path) >= 15:
+            for i in range(14):
+                self.path.pop(0)
             currPos = self.path.pop(0)
             self.character.x = currPos[0] - self.character.image.get_size()[0]//2
             self.character.y = currPos[1] - self.character.image.get_size()[1]//2
-        if len(self.path) < 5 and len(self.path) != 0:
+        if len(self.path) < 15 and len(self.path) != 0:
             if self.reachedKey != None:
                 self.reached[self.reachedKey] = True
                 self.path = []

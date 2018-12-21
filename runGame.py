@@ -1,3 +1,6 @@
+#This is the file that should be run to test the whole project. It takes all
+#of the games states and combines them together to make the full game
+
 import pygame
 from pygamegame import PygameGame
 from board1 import *
@@ -5,6 +8,7 @@ from board2 import *
 from player import *
 from customers import *
 from startScreen import *
+from gameOver import *
 import math
 
 class runGame(PygameGame):
@@ -13,6 +17,7 @@ class runGame(PygameGame):
         self.background0 = True
         self.background1 = False
         self.background2 = False
+        self.background3 = False
         self.justStarted = True
         self.customers = []
         self.collectMoneyTables = []
@@ -23,7 +28,7 @@ class runGame(PygameGame):
         self.priorityCustomer = "No one"
         self.bestMove = "Wait for a customer"
         self.allPrep = {"sushi": 1, "nachos": 1, "springRolls": 2, "steak": 2, \
-        "juice": 1, "coffee": 1}
+        "juice": 0.5, "coffee": 0.5}
         pygame.init()
 
     def trash(self):
@@ -45,20 +50,29 @@ class runGame(PygameGame):
                 self.background = self.kitchen.background
                 self.drawingChar = self.kitchen.drawingChar
                 self.character = self.kitchen.character
-                (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
+                (self.kitchen.character.x, self.kitchen.character.y) = (self.kitchen.oldX\
+                , self.kitchen.oldY)
                 self.character.arm1 = self.kitchen.character.arm1
                 self.character.arm2 = self.kitchen.character.arm2
                 self.greenArrow = self.kitchen.greenArrow
         elif self.background1 == True:
             if 800 < x < 880 and 290 < y < 350: #green Arrow placement
+                self.kitchen.oldX = self.character.x
+                self.kitchen.oldY = self.character.y
                 self.background1 = False
                 self.background2 = True
+                (self.dining.character.x, self.dining.character.y) = \
+                (self.dining.oldX, self.dining.oldY)
                 pygame.mixer.stop()
                 self.playMusic()
         elif self.background2 == True:
             if -100 < x < 100 and 290 < y < 350:  #green Arrow placement
+                self.dining.oldX = self.character.x
+                self.dining.oldY = self.character.y
                 self.background1 = True
                 self.background2 = False
+                (self.kitchen.character.x, self.kitchen.character.y) = \
+                (self.kitchen.oldX, self.kitchen.oldY)
                 pygame.mixer.stop()
                 self.playMusic()
             elif 780 < x < 880 and 300 < y < 380:
@@ -231,7 +245,8 @@ class runGame(PygameGame):
             self.drawingChar = self.kitchen.drawingChar
             self.character.holding = self.kitchen.character.holding
             if self.background1 == True:
-                (self.character.x, self.character.y) = (self.kitchen.character.x, self.kitchen.character.y)
+                (self.character.x, self.character.y) = (self.kitchen.character.x,\
+                self.kitchen.character.y)
             elif self.background2 == True:
                 (self.character.x, self.character.y) = (self.dining.character.x, self.dining.character.y)
                 self.character.arm1 = self.kitchen.character.arm1
@@ -239,6 +254,11 @@ class runGame(PygameGame):
                 self.customersLeaveTable()
             self.customers = self.dining.customers
             self.customersNames = self.dining.customersNames
+            if self.dining.waitingCustomers == 3:
+                self.background1 = False
+                self.background2 = False
+                self.background3 = True
+                self.gameOver = gameOver(self.dining.score)
 
     def playMusic(self):
         if self.background1 == True or self.background0 == True:
@@ -282,47 +302,32 @@ class runGame(PygameGame):
 
     def backtracking(self):
         if self.priorityCustomer in self.dining.custOrders:
-            orders = copy.copy(self.dining.custOrders[self.priorityCustomer])
-            bestOrderForOrders = []
-            bestSol = None
-            count = 0
-            self.bestMove = self.helperBacktracking(orders, bestOrderForOrders,\
-            bestSol)[0]
+            if self.dining.custOrders[self.priorityCustomer] != []:
+                orders = copy.copy(self.dining.custOrders[self.priorityCustomer])
+                bestOrderForOrders = []
+                bestSol = None
+                self.bestMove = self.helperBacktracking(orders, bestOrderForOrders,\
+                bestSol)[0]
+            else:
+                self.bestMove = "Wait for new customers!"
         else:
             self.bestMove = "Seat " + str(self.priorityCustomer) + "!"
-
-    def foodTimes(self, bestOrderForOrders, tmpSol):
-        sum1 = 0
-        for order in bestOrderForOrders:
-            sum1 += self.allPrep[order]
-        sum2 = 0
-        for order in tmpSol:
-            sum2 += self.allPrep[order]
-        if sum1 < sum2:
-            return True
-        return False
-
 
     def helperBacktracking(self, orders, bestOrderForOrders, bestSol):
         if len(bestOrderForOrders) == len(self.dining.custOrders[self.priorityCustomer]):
             return bestOrderForOrders
         for move in self.allPrep:
-            if self.isValid(move, orders):
-                bestOrderForOrders.extend([move])
+            if self.isValid(move, orders, bestOrderForOrders):
                 orders.remove(move)
-                tmpSol = self.helperBacktracking(orders, bestOrderForOrders, bestSol)
+                tmpSol = self.helperBacktracking(orders, bestOrderForOrders + [move], bestSol)
                 if tmpSol != None:
-                    if len(bestOrderForOrders) == 0:
-                        bestSol = tmpSol
-                    elif self.foodTimes(bestOrderForOrders, tmpSol) == True:
-                        bestSol = tmpSol
-                    return bestOrderForOrders
-                bestOrderForOrders.pop()
-                orders.extend(move)
+                    return tmpSol
+                orders.extend([move])
         return None
 
-    def isValid(self, move, orders):
-        if move in orders:
+    def isValid(self, move, orders, bestOrderForOrders):
+        if move in orders and (bestOrderForOrders == [] or self.allPrep[move] \
+        <= self.allPrep[bestOrderForOrders[-1]]):
             return True
         return False
 
@@ -353,6 +358,8 @@ class runGame(PygameGame):
     def redrawAll(self, screen):
         if self.background0:
             self.startScreen.redrawAll(screen)
+        elif self.background3:
+            self.gameOver.redrawAll(screen)
         elif self.background2:
             self.dining.redrawAll(screen)
             for customer in self.customers:
@@ -414,37 +421,10 @@ class runGame(PygameGame):
                     else:
                         self.dining.mousePressed(*(event.pos))
                     self.mousePressed(*(event.pos))
-                # elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                #     if self.background1 == True:
-                #         self.kitchen.mouseReleased(*(event.pos))
-                #     else:
-                #         self.dining.mouseReleased(*(event.pos))
-                elif (event.type == pygame.MOUSEMOTION and
-                      event.buttons == (0, 0, 0)):
-                    if self.background1 == True:
-                        self.kitchen.mouseMotion(*(event.pos))
-                    elif self.background2 == True:
-                        self.dining.mouseMotion(*(event.pos))
-                elif (event.type == pygame.MOUSEMOTION and
-                      event.buttons[0] == 1):
-                    if self.background1 == True:
-                        self.kitchen.mouseDrag(*(event.pos))
-                    else:
-                        self.dining.mouseDrag(*(event.pos))
                 elif event.type == pygame.KEYDOWN:
-                    if self.background1 == True:
-                        self.kitchen._keys[event.key] = True
-                        self.kitchen.keyPressed(event.key, event.mod)
-                    else:
-                        self.dining._keys[event.key] = True
-                        self.dining.keyPressed(event.key, event.mod)
-                elif event.type == pygame.KEYUP:
-                    if self.background1 == True:
-                        self.kitchen._keys[event.key] = False
-                        self.kitchen.keyReleased(event.key, event.mod)
-                    else:
-                        self.dining._keys[event.key] = False
-                        self.dining.keyReleased(event.key, event.mod)
+                    if pygame.key.name(event.key) == "f":
+                        self.dining.startTime = (self.dining.startTime//88 + 1)*88
+                        print(self.dining.startTime)
             self.redrawAll(screen)
             pygame.display.flip()
 

@@ -1,3 +1,4 @@
+#creates the dining room board, with all of the properties that are appropriate
 import pygame
 from pygamegame import PygameGame
 from player import Player
@@ -47,6 +48,8 @@ class Board2(PygameGame):
         self.level = 1
         self.orders = dict()
         self.custOrders = dict()
+        self.oldX = 300
+        self.oldY = 300
         self.customersNames = []
         self.font = pygame.font.SysFont("Courier New", 16)
         self.trashCan = pygame.image.load("images/trashCan.png")
@@ -108,7 +111,7 @@ class Board2(PygameGame):
                     self.character.y = table.y +20
 
     def levelUp(self):
-        if self.score != 0 and self.score % 20 == 0: #everytime someone gets 100 points
+        if self.score != 0 and self.score % 20 == 0: #everytime someone gets 20 points
             self.level += 1 #we make it harder
 
     def getNameOfCustomer(self, customer):
@@ -125,7 +128,7 @@ class Board2(PygameGame):
             if i <= 5 and self.customers[i].y != ypos:
                 self.customers[i].y = ypos
             ypos -= 100
-        if self.startTime % 100/self.level == 0:
+        if self.startTime % 90/self.level == 0:
             if self.customers != []:
                 if len(self.customers) <= 5:
                     ypos = 450
@@ -141,13 +144,7 @@ class Board2(PygameGame):
                     self.getNameOfCustomer(customer)
                     self.queue.put(Priority(time.time(), customer.name))
                     self.customers.extend([customer])
-                    self.waitingCustomers += 1
                     ypos -= 100
-            # else:
-            #     customer = Customer(0,450, time.time())
-            #     self.getNameOfCustomer(customer)
-            #     self.customers.extend([customer])
-            #     self.queue.put(Priority(time.time(), customer.name))
 
     def order(self):
         notOrdered = copy.copy(self.notOrderedYet)
@@ -160,6 +157,10 @@ class Board2(PygameGame):
 
     def timerFired(self, dt, background):
         self.startTime += 1
+        if len(self.customers) <= 5:
+            self.waitingCustomers = 0
+        else:
+            self.waitingCustomers = len(self.customers) - 5
         self.levelUp()
         self.createCustomers()
         self.checkIfPicked(background)
@@ -202,7 +203,7 @@ class Board2(PygameGame):
                 outputString = str(self.orders[table][0])
                 for item in self.orders[table][1:]:
                     outputString += ", " + str(item)
-                text = str(self.custAtTable[table]) + " Order " +str(num) + ":"+ outputString
+                text = str(self.custAtTable[table]) + " #" +str(num) + ": "+ outputString
                 text_rect = pygame.Rect((rectLeft+ 10, rectTop + 25), (80, 200))
                 ticketImage = pygame.image.load("images/ticket.png")
                 ticketImage = pygame.transform.scale(ticketImage, (100, 80))

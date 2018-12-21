@@ -1,3 +1,4 @@
+#initializes 3 classes: customer, table and seatedTable
 import pygame
 
 class Customer(object):

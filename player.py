@@ -1,3 +1,4 @@
+#initializes all important variables in the player class
 import pygame
 
 class Player(object):

@@ -1,3 +1,5 @@
+#this is the start screen of the game. It is the first thing to be
+#loaded into runGame.py
 import pygame
 from pygamegame import PygameGame
 

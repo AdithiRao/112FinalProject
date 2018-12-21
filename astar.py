@@ -1,62 +1,66 @@
+#this is the alogorithmic component of the kitchen which corresponds to the
+#movement of our character in the kitchen (utilizes A star)
 import numpy
+#citation:https://www.geeksforgeeks.org/a-search-algorithm/
+#citation: https://medium.com/@nicholas.w.swift/easy-a-star-pathfinding-7e6689c7f7b2
+#citation: https://www.redblobgames.com/pathfinding/a-star/introduction.html
 
 class Node():
     def __init__(self, parent=None, position=None):
         self.parent = parent
         self.position = position
-        self.g = 0
-        self.h = 0
-        self.f = 0
+        self.g = 0 #dist between curr node and start node
+        self.h = 0 #heuristic
+        self.f = 0 #total cost 
 
     def __eq__(self, other):
         return self.position == other.position
 
 
 def astar(board, start, end):
-    startingNode = Node(None, start)
-    startingNode.g = startingNode.h = startingNode.f = 0
-    endingNode = Node(None, end)
-    endingNode.g = endingNode.h = endingNode.f = 0
-    list1 = []
-    list2 = []
-    list1.append(startingNode)
-    while len(list1) > 0:
-        currNode = list1[0]
-        currInd = 0
-        for index, item in enumerate(list1):
-            if item.f < currNode.f:
-                currNode = item
-                currInd = index
-        list1.pop(currInd)
-        list2.append(currNode)
-        if currNode == endingNode:
+    start_node = Node(None, start)
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = Node(None, end)
+    end_node.g = end_node.h = end_node.f = 0
+    open_list = []
+    closed_list = []
+    open_list.append(start_node)
+    while len(open_list) > 0:
+        current_node = open_list[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+        open_list.pop(current_index)
+        closed_list.append(current_node)
+        if current_node == end_node:
             path = []
-            current = currNode
+            current = current_node
             while current is not None:
                 path.append(current.position)
                 current = current.parent
             return path[::-1]
-        branch = []
-        for move in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
-            nodePos = (currNode.position[0] + move[0], currNode.position[1] + move[1])
-            if nodePos[0] > (len(board) - 1) or nodePos[0] < 0 or nodePos[1] > (len(board[len(board)-1]) -1) or nodePos[1] < 0:
+        children = []
+        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+            if node_position[0] > (len(board) - 1) or node_position[0] < 0 or node_position[1] > (len(board[len(board)-1]) -1) or node_position[1] < 0:
                 continue
-            if board[nodePos[0]][nodePos[1]] != 0:
+            if board[node_position[0]][node_position[1]] != 0:
                 continue
-            newNode = Node(currNode, nodePos)
-            branch.append(newNode)
-        for subBranch in branch:
-            for item in list2:
-                if subBranch == item:
+            new_node = Node(current_node, node_position)
+            children.append(new_node)
+        for child in children:
+            for closed_child in closed_list:
+                if child == closed_child:
                     continue
-            subBranch.g = currNode.g + 1
-            subBranch.h = ((subBranch.position[0] - endingNode.position[0]) ** 2) \
-            + ((subBranch.position[1] - endingNode.position[1]) ** 2)
-            subBranch.f = subBranch.g + subBranch.h
-            for open_node in list1:
-                if subBranch == open_node and subBranch.g > open_node.g:
+            child.g = current_node.g + 1
+            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
+            child.f = child.g + child.h
+            for open_node in open_list:
+                if child == open_node and child.g > open_node.g:
                     continue
-            list1.append(subBranch)
+            open_list.append(child)
 
 
 def createPath(x1, y1, x2, y2):
@@ -65,8 +69,8 @@ def createPath(x1, y1, x2, y2):
     for i in range(len(board)):
         for j in range(len(board[0])):
             board[i][j] = int(board[i][j])
-    for i in range(315,400):
-        for j in range(305, 440):
+    for i in range(305,440):
+        for j in range(315, 400):
             board[i][j] = 1
 
     start = (x1, y1)
